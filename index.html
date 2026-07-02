@@ -4,22 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Google AI Studio App</title>
-    <script>
-      if (window.location.hostname.endsWith('github.io') && !window.location.pathname.endsWith('/') && !window.location.pathname.endsWith('.html')) {
-        window.location.replace(window.location.href + '/');
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      window.addEventListener('error', function(e) {
-        document.body.innerHTML += '<div style="color:red; background:black; padding:20px; z-index:9999; position:absolute; top:0;">' + e.message + '<br>' + e.filename + ':' + e.lineno + '</div>';
-      });
-      window.addEventListener('unhandledrejection', function(e) {
-        document.body.innerHTML += '<div style="color:red; background:black; padding:20px; z-index:9999; position:absolute; top:0;">' + e.reason + '</div>';
-      });
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
