@@ -58,7 +58,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, [history.length]);
 
   return (
-    <ProjectContext.Provider value={{ state, setClips, undo, redo, canUndo: currentIndex > 0, canRedo: currentIndex < history.length - 1 }}>
+    <ProjectContext.Provider value={{ state, setClips, setKeyframes, undo, redo, canUndo: currentIndex > 0, canRedo: currentIndex < history.length - 1 }}>
       {children}
     </ProjectContext.Provider>
   );

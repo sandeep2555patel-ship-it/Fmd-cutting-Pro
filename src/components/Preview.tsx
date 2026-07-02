@@ -12,8 +12,10 @@ export default function Preview() {
 
   useEffect(() => {
     if (isPlaying) {
-      videoRef.current?.play().catch(() => setIsPlaying(false));
-      audioRef.current?.play().catch(() => setIsPlaying(false));
+      const v = videoRef.current;
+      const a = audioRef.current;
+      if (v) v.play().catch(() => setIsPlaying(false));
+      if (a) a.play().catch(() => setIsPlaying(false));
     } else {
       videoRef.current?.pause();
       audioRef.current?.pause();
