@@ -99,36 +99,28 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
 
           <div className="p-4 flex-1 overflow-y-auto">
             <label className="w-full flex flex-col items-center justify-center py-8 border border-dashed border-[#444] rounded-lg text-gray-400 hover:bg-[#222] hover:text-white transition-all mb-4 cursor-pointer">
-              <input type="file" className="hidden" accept="video/*,audio/*,image/*" onChange={async (e) => {
+              <input type="file" className="hidden" accept="video/*,audio/*,image/*" onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 
-                const formData = new FormData();
-                formData.append('file', file);
-                
                 try {
-                  const res = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                  });
-                  const data = await res.json();
+                  const url = URL.createObjectURL(file);
+                  const type = file.type.startsWith('video/') ? 'video' : file.type.startsWith('audio/') ? 'audio' : 'image';
                   
-                  if (data.url) {
-                    setClips([...clips, {
-                      id: `c${Date.now()}`,
-                      trackId: 'v2', 
-                      start: clips.length * 50,
-                      duration: 120,
-                      name: data.name,
-                      bg: '#2B547E',
-                      selected: true,
-                      type: data.type,
-                      url: data.url
-                    }]);
-                  }
+                  setClips([...clips, {
+                    id: `c${Date.now()}`,
+                    trackId: 'v2', 
+                    start: clips.length * 50,
+                    duration: 120,
+                    name: file.name,
+                    bg: '#2B547E',
+                    selected: true,
+                    type: type,
+                    url: url
+                  }]);
                 } catch (err) {
-                  console.error('Upload failed', err);
-                  alert('Upload failed');
+                  console.error('Local import failed', err);
+                  alert('Local import failed');
                 }
               }} />
               <Plus size={24} className="mb-2 text-[#2fe4b9]" />
