@@ -117,14 +117,29 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
                   const url = URL.createObjectURL(file);
                   const type = file.type.startsWith('video/') ? 'video' : file.type.startsWith('audio/') ? 'audio' : 'image';
                   
-                  const newMedia = {
-                    id: `m${Date.now()}`,
-                    name: file.name,
-                    url: url,
-                    type: type as 'video'|'audio'|'image'
-                  };
-                  
-                  setMediaLibrary([newMedia, ...mediaLibrary]);
+                  if (type === 'video' || type === 'audio') {
+                    const mediaEl = document.createElement(type);
+                    mediaEl.src = url;
+                    mediaEl.onloadedmetadata = () => {
+                      const newMedia = {
+                        id: `m${Date.now()}`,
+                        name: file.name,
+                        url: url,
+                        type: type as 'video'|'audio'|'image',
+                        duration: mediaEl.duration
+                      };
+                      setMediaLibrary(prev => [newMedia, ...prev]);
+                    };
+                  } else {
+                    const newMedia = {
+                      id: `m${Date.now()}`,
+                      name: file.name,
+                      url: url,
+                      type: 'image',
+                      duration: 5 // Default 5s for images
+                    };
+                    setMediaLibrary(prev => [newMedia, ...prev]);
+                  }
                   
                   e.target.value = ''; // reset file input
                 } catch (err) {
@@ -144,11 +159,17 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
               {mediaLibrary.map((media, i) => (
                 <div key={media.id} onClick={() => {
                   const newClips = clips.map(c => ({ ...c, selected: false }));
+                  const targetTrackId = media.type === 'audio' ? 'a1' : 'v2';
+                  const trackClips = clips.filter(c => c.trackId === targetTrackId);
+                  const lastClip = trackClips.sort((a, b) => (b.start + b.duration) - (a.start + a.duration))[0];
+                  const newStart = lastClip ? lastClip.start + lastClip.duration : 0;
+                  const durationPixels = media.duration ? media.duration * 20 : 100;
+                  
                   setClips([...newClips, {
                     id: `c${Date.now()}`,
-                    trackId: media.type === 'audio' ? 'a1' : 'v2', 
-                    start: clips.length * 50,
-                    duration: 120,
+                    trackId: targetTrackId, 
+                    start: newStart,
+                    duration: durationPixels,
                     name: media.name,
                     bg: media.type === 'audio' ? '#1E6C54' : '#2B547E',
                     selected: true,

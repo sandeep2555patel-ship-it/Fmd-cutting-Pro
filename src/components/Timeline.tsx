@@ -1,17 +1,25 @@
-import { MousePointer2, Scissors, Trash2, Copy, Eye, EyeOff, Lock, Unlock, Mic, ZoomIn, ZoomOut, Volume2, Music, Type, Image, Film } from 'lucide-react';
+import { MousePointer2, Eye, EyeOff, Lock, Unlock, Music, Type, Image, Film } from 'lucide-react';
 import { useState } from 'react';
 import { useProject } from '../context';
 
 const TRACKS = [
-  { id: 't1', name: 'Text', type: 'text', icon: Type, color: '#A86624', isMuted: false, isLocked: false },
-  { id: 'v1', name: 'Sticker/PiP', type: 'video', icon: Image, color: '#6D3A8A', isMuted: false, isLocked: false },
-  { id: 'v2', name: 'Main Track', type: 'video', icon: Film, color: '#2B547E', isMuted: false, isLocked: false },
-  { id: 'a1', name: 'Music', type: 'audio', icon: Music, color: '#1E6C54', isMuted: false, isLocked: false },
+  { id: 'a1', name: 'Music', type: 'audio', icon: Music, color: '#2a2a2a', isMuted: false, isLocked: false },
+  { id: 't1', name: 'Text', type: 'text', icon: Type, color: '#2a2a2a', isMuted: false, isLocked: false },
+  { id: 'v1', name: 'Sticker/PiP', type: 'video', icon: Image, color: '#2a2a2a', isMuted: false, isLocked: false },
+  { id: 'v2', name: 'Main Track', type: 'video', icon: Film, color: '#2a2a2a', isMuted: false, isLocked: false },
 ];
 
 export default function Timeline() {
-  const { state: { clips }, setClips } = useProject();
+  const { state, setClips, setCurrentTime } = useProject();
+  const { clips } = state;
   const [zoom, setZoom] = useState(30);
+
+  const maxClipEnd = Math.max(...clips.map(c => c.start + c.duration), 0);
+  const minWidthPixels = 10800 * 20; // 3 hours at 20px/s
+  const timelineWidth = Math.max(minWidthPixels, maxClipEnd + 1000);
+  const totalMarks = Math.ceil(timelineWidth / 100);
+
+  const selectedClip = clips.find(c => c.selected);
 
   const handleClipClick = (clipId: string) => {
     setClips(clips.map(clip => ({
@@ -21,114 +29,262 @@ export default function Timeline() {
   };
 
   return (
-    <div className="h-[40vh] min-h-[200px] bg-[#121212] border-t border-[#222] flex flex-col flex-shrink-0 relative z-10">
-      {/* Timeline Toolbar */}
-      <div className="h-10 bg-[#181818] border-b border-[#222] flex items-center justify-between px-2 md:px-4 overflow-x-auto no-scrollbar">
-        <div className="flex items-center space-x-1 md:space-x-2 md:border-r border-[#333] md:pr-4 flex-shrink-0">
-          <button className="p-1.5 bg-[#2a2a2a] rounded text-[#2fe4b9]" title="Select (V)">
-            <MousePointer2 size={14} />
-          </button>
-          <button className="p-1.5 hover:bg-[#2a2a2a] rounded text-gray-400 hover:text-white transition-colors" title="Split (B)">
-            <Scissors size={14} />
-          </button>
-          <button className="p-1.5 hover:bg-[#2a2a2a] rounded text-gray-400 hover:text-white transition-colors" title="Delete (Del)">
-            <Trash2 size={14} />
-          </button>
-          <button className="p-1.5 hover:bg-[#2a2a2a] rounded text-gray-400 hover:text-white transition-colors" title="Copy (Ctrl+C)">
-            <Copy size={14} />
-          </button>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-gray-500">
-            <button className="hover:text-white" onClick={() => setZoom(Math.max(10, zoom - 10))}><ZoomOut size={14} /></button>
-            <input type="range" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} min={10} max={100} className="w-24" />
-            <button className="hover:text-white" onClick={() => setZoom(Math.min(100, zoom + 10))}><ZoomIn size={14} /></button>
-          </div>
-        </div>
-      </div>
-
-      {/* Fixed Playhead (Moved outside scrolling area) */}
-      <div className="absolute top-[40px] bottom-0 w-[2px] bg-white z-30 pointer-events-none left-[40px] md:left-[50px] ml-[50%] md:ml-[30%]">
-        <div className="absolute top-0 -left-[5px] w-3 h-3 bg-white pointer-events-auto cursor-ew-resize rounded-b-sm flex items-center justify-center">
-          <div className="w-[1px] h-1.5 bg-black"></div>
-        </div>
-      </div>
-
+    <div className="h-[50%] min-h-[200px] bg-[#121212] flex flex-col flex-shrink-0 relative z-10 border-t border-[#222]">
       {/* Tracks Area */}
-      <div className="flex-1 overflow-auto relative">
-        <div className="flex w-[2040px] md:w-[2050px] min-h-full">
+      <div className="flex-1 overflow-auto relative no-scrollbar">
+        <div className="flex min-w-max min-h-full">
+
           
           {/* Track Headers (Left sidebar) */}
           <div className="w-[40px] md:w-[50px] flex-shrink-0 bg-[#181818] border-r border-[#222] flex flex-col z-20 sticky left-0">
             <div className="h-6 border-b border-[#333] sticky top-0 bg-[#181818] z-30"></div> {/* Empty space for time ruler */}
             <div className="flex flex-col">
-              {TRACKS.map(track => (
-                <div key={track.id} className="h-16 border-b border-[#222] flex items-center justify-center relative flex-shrink-0">
-                  <span className="w-6 h-6 rounded bg-[#222] flex items-center justify-center font-bold text-[#888] text-xs shadow-inner">
-                    <track.icon size={14} />
-                  </span>
-                </div>
-              ))}
+              {TRACKS.map(track => {
+                const heightClass = track.id === 'v2' ? 'h-24' : 'h-14';
+                return (
+                  <div key={track.id} className={`${heightClass} border-b border-[#222] flex items-center justify-center relative flex-shrink-0 bg-[#181818]`}>
+                    <span className="w-7 h-7 rounded bg-[#222] flex items-center justify-center font-bold text-[#888] text-xs shadow-inner">
+                      <track.icon size={16} />
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           {/* Tracks Content (Right scrolling area) */}
           <div 
             className="flex-1 relative flex flex-col"
-            onClick={() => setClips(clips.map(c => ({ ...c, selected: false })))}
+            onMouseDown={() => {
+              setClips(clips => clips.map(c => ({ ...c, selected: false })));
+            }}
+            onTouchStart={() => {
+              setClips(clips => clips.map(c => ({ ...c, selected: false })));
+            }}
           >
+            {/* Movable Playhead */}
+            <div 
+              className="absolute top-0 bottom-[70px] w-[2px] bg-white z-40 pointer-events-auto cursor-ew-resize"
+              style={{ left: `${state.currentTime}px`, touchAction: 'none' }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                const startX = e.clientX;
+                const startTime = state.currentTime;
+                
+                const onMouseMove = (moveEvent: MouseEvent) => {
+                  const deltaX = moveEvent.clientX - startX;
+                  const newTime = Math.max(0, startTime + deltaX);
+                  setCurrentTime(newTime);
+                };
+                
+                const onMouseUp = () => {
+                  window.removeEventListener('mousemove', onMouseMove);
+                  window.removeEventListener('mouseup', onMouseUp);
+                };
+                
+                window.addEventListener('mousemove', onMouseMove);
+                window.addEventListener('mouseup', onMouseUp);
+              }}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                const startX = e.touches[0].clientX;
+                const startTime = state.currentTime;
+                
+                const onTouchMove = (moveEvent: TouchEvent) => {
+                  const deltaX = moveEvent.touches[0].clientX - startX;
+                  const newTime = Math.max(0, startTime + deltaX);
+                  setCurrentTime(newTime);
+                };
+                
+                const onTouchEnd = () => {
+                  window.removeEventListener('touchmove', onTouchMove);
+                  window.removeEventListener('touchend', onTouchEnd);
+                };
+                
+                window.addEventListener('touchmove', onTouchMove, { passive: false });
+                window.addEventListener('touchend', onTouchEnd);
+              }}
+            >
+              {/* Invisible hit area for the line to make it easier to grab */}
+              <div className="absolute inset-y-0 -left-[15px] w-[32px] bg-transparent"></div>
+              {/* Top Handle */}
+              <div className="absolute -top-[2px] -left-[6px] w-[14px] h-[16px] drop-shadow-md pointer-events-none">
+                 <svg viewBox="0 0 14 16" fill="white" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0 2C0 0.895431 0.895431 0 2 0H12C13.1046 0 14 0.89543 14 2V10L7 16L0 10V2Z" />
+                 </svg>
+              </div>
+            </div>
             
             {/* Time Ruler */}
             <div className="h-6 border-b border-[#333] sticky top-0 bg-[#111] z-10 flex items-end">
               {/* Generating mock ruler marks */}
-              <div className="w-full h-full flex items-end" style={{ background: 'repeating-linear-gradient(to right, #333 0px, #333 1px, transparent 1px, transparent 100px)' }}>
-                {[...Array(20)].map((_, i) => (
-                  <div key={i} className="w-[100px] flex-shrink-0 text-[9px] text-gray-500 pl-1 pb-0.5">
-                    00:00:{i * 5 < 10 ? '0' + i * 5 : i * 5}:00
+              <div className="h-full flex items-end" style={{ width: timelineWidth, background: 'repeating-linear-gradient(to right, #444 0px, #444 1px, transparent 1px, transparent 10px)' }}>
+                {Array.from({ length: totalMarks }).map((_, i) => (
+                  <div key={i} className="w-[100px] flex-shrink-0 text-[10px] text-gray-400 pl-1 pb-[2px] font-medium leading-none border-l border-white relative -left-[1px] h-2">
+                    <span className="absolute -top-3 left-1">{i * 5}s</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Grid lines */}
-            <div className="absolute inset-0 pointer-events-none mt-6" style={{ background: 'repeating-linear-gradient(to right, #222 0px, #222 1px, transparent 1px, transparent 100px)' }}></div>
+            <div className="absolute inset-0 pointer-events-none mt-6" style={{ width: timelineWidth, background: 'repeating-linear-gradient(to right, #222 0px, #222 1px, transparent 1px, transparent 100px)' }}></div>
 
             {/* Tracks Wrapper */}
-            <div className="w-full flex flex-col relative">
+            <div className="flex flex-col relative" style={{ width: timelineWidth }}>
             {TRACKS.map((track, i) => {
               const trackClips = clips.filter(c => c.trackId === track.id);
+              const heightClass = track.id === 'v2' ? 'h-24' : 'h-14';
               
               return (
-                <div key={track.id} className="h-16 border-b border-[#222]/50 relative w-full">
+                <div key={track.id} className={`${heightClass} border-b border-[#222]/50 relative w-full`}>
                   {/* Empty state placeholders for specific tracks */}
                   {trackClips.length === 0 && track.id === 't1' && (
-                    <div className="absolute left-2 top-2 bottom-2 w-48 bg-[#2A2A2A] rounded-sm flex items-center px-3 text-[11px] text-[#888] cursor-pointer border border-[#333] hover:bg-[#333]">
+                    <div 
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        setClips(prev => [...prev.map(c => ({...c, selected: false})), {
+                          id: `text_${Date.now()}`, name: 'Default Text', type: 'text',
+                          start: state.currentTime, duration: 50, trackId: 't1', selected: true, color: '#fff', content: 'Default Text'
+                        }]);
+                      }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-8 px-3 bg-[#222]/80 rounded flex items-center text-[10px] font-medium text-gray-400 cursor-pointer border border-white/5 hover:bg-[#333] z-10 transition-colors"
+                    >
+                      <span className="w-4 h-4 rounded bg-white/10 flex items-center justify-center mr-2 text-white text-xs">+</span>
                       Tap to add subtitle
                     </div>
                   )}
                   {trackClips.length === 0 && track.id === 'v1' && (
-                    <div className="absolute left-2 top-2 bottom-2 w-48 bg-[#2A2A2A] rounded-sm flex items-center px-3 text-[11px] text-[#888] cursor-pointer border border-[#333] hover:bg-[#333]">
-                      Tap to add sticker / PiP
+                    <div 
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        setClips(prev => [...prev.map(c => ({...c, selected: false})), {
+                          id: `sticker_${Date.now()}`, name: '😀', type: 'sticker',
+                          start: state.currentTime, duration: 50, trackId: 'v1', selected: true, content: '😀'
+                        }]);
+                      }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-8 px-3 bg-[#222]/80 rounded flex items-center text-[10px] font-medium text-gray-400 cursor-pointer border border-white/5 hover:bg-[#333] z-10 transition-colors"
+                    >
+                      <span className="w-4 h-4 rounded bg-white/10 flex items-center justify-center mr-2 text-white text-xs">+</span>
+                      Tap to add sticker/PIP
                     </div>
                   )}
                   {trackClips.length === 0 && track.id === 'a1' && (
-                    <div className="absolute left-2 top-2 bottom-2 w-48 bg-[#2A2A2A] rounded-sm flex items-center px-3 text-[11px] text-[#888] cursor-pointer border border-[#333] hover:bg-[#333]">
+                    <div 
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        setClips(prev => [...prev.map(c => ({...c, selected: false})), {
+                          id: `audio_${Date.now()}`, name: 'Default Audio', type: 'audio',
+                          start: state.currentTime, duration: 100, trackId: 'a1', selected: true
+                        }]);
+                      }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-8 px-3 bg-[#222]/80 rounded flex items-center text-[10px] font-medium text-gray-400 cursor-pointer border border-white/5 hover:bg-[#333] z-10 transition-colors"
+                    >
+                      <span className="w-4 h-4 rounded bg-white/10 flex items-center justify-center mr-2 text-white text-xs">+</span>
                       Tap to add music
                     </div>
                   )}
 
                   {trackClips.length === 0 && track.id === 'v2' && (
-                    <div className="absolute left-2 top-2 bottom-2 w-48 bg-[#2A2A2A] rounded-sm flex items-center px-3 text-[11px] text-[#888] cursor-pointer border border-[#333] hover:bg-[#333]">
+                    <label 
+                      onPointerDown={(e) => e.stopPropagation()}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-8 px-3 bg-[#222]/80 rounded flex items-center text-[10px] font-medium text-gray-400 cursor-pointer border border-white/5 hover:bg-[#333] z-10 transition-colors"
+                    >
+                      <span className="w-4 h-4 rounded bg-white/10 flex items-center justify-center mr-2 text-white text-xs">+</span>
                       Tap to add video
-                    </div>
+                      <input 
+                        type="file" 
+                        accept="video/*,image/*" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const url = URL.createObjectURL(file);
+                            const isVideo = file.type.startsWith('video/');
+                            
+                            if (isVideo) {
+                              const video = document.createElement('video');
+                              video.preload = 'metadata';
+                              video.onloadedmetadata = () => {
+                                setClips(prev => [...prev.map(c => ({...c, selected: false})), {
+                                  id: `video_${Date.now()}`, name: file.name, type: 'video',
+                                  start: state.currentTime, duration: video.duration * 10 || 100, trackId: 'v2', selected: true, url
+                                }]);
+                              };
+                              video.src = url;
+                            } else {
+                              setClips(prev => [...prev.map(c => ({...c, selected: false})), {
+                                id: `image_${Date.now()}`, name: file.name, type: 'image',
+                                start: state.currentTime, duration: 50, trackId: 'v2', selected: true, url
+                              }]);
+                            }
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
                   )}
 
                   {/* Render clips for this track */}
                   {trackClips.map(clip => (
                   <div 
                     key={clip.id}
-                    onClick={(e) => { e.stopPropagation(); handleClipClick(clip.id); }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      handleClipClick(clip.id);
+                      
+                      const startX = e.clientX;
+                      const startClipX = clip.start;
+                      
+                      let isDraggingAllowed = false;
+                      const holdTimer = setTimeout(() => {
+                        isDraggingAllowed = true;
+                      }, 1000);
+                      
+                      const onMouseMove = (moveEvent: MouseEvent) => {
+                        if (!isDraggingAllowed) return;
+                        const deltaX = moveEvent.clientX - startX;
+                        const newStart = Math.max(0, startClipX + deltaX);
+                        setClips(prevClips => prevClips.map(c => c.id === clip.id ? { ...c, start: newStart } : c));
+                      };
+                      
+                      const onMouseUp = () => {
+                        clearTimeout(holdTimer);
+                        window.removeEventListener('mousemove', onMouseMove);
+                        window.removeEventListener('mouseup', onMouseUp);
+                      };
+                      
+                      window.addEventListener('mousemove', onMouseMove);
+                      window.addEventListener('mouseup', onMouseUp);
+                    }}
+                    onTouchStart={(e) => {
+                      e.stopPropagation();
+                      handleClipClick(clip.id);
+                      
+                      const startX = e.touches[0].clientX;
+                      const startClipX = clip.start;
+                      
+                      let isDraggingAllowed = false;
+                      const holdTimer = setTimeout(() => {
+                        isDraggingAllowed = true;
+                      }, 1000);
+                      
+                      const onTouchMove = (moveEvent: TouchEvent) => {
+                        if (!isDraggingAllowed) return;
+                        const deltaX = moveEvent.touches[0].clientX - startX;
+                        const newStart = Math.max(0, startClipX + deltaX);
+                        setClips(prevClips => prevClips.map(c => c.id === clip.id ? { ...c, start: newStart } : c));
+                      };
+                      
+                      const onTouchEnd = () => {
+                        clearTimeout(holdTimer);
+                        window.removeEventListener('touchmove', onTouchMove);
+                        window.removeEventListener('touchend', onTouchEnd);
+                      };
+                      
+                      window.addEventListener('touchmove', onTouchMove, { passive: false });
+                      window.addEventListener('touchend', onTouchEnd);
+                    }}
                     className={`absolute top-1 bottom-1 flex items-center text-[11px] font-medium text-white cursor-pointer select-none overflow-hidden ${
                       clip.selected ? 'border-y-[3px] border-[#FFC800] z-20' : 'opacity-85 hover:opacity-100 rounded-sm z-10'
                     }`}
@@ -160,6 +316,15 @@ export default function Timeline() {
                         </div>
                       </>
                     )}
+
+                    {/* Render keyframes */}
+                    {clip.keyframes && clip.keyframes.map((kf, index) => (
+                      <div 
+                        key={index}
+                        className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rotate-45 border border-black bg-[#2fe4b9] shadow-sm z-30"
+                        style={{ left: `${kf.time}px`, transform: 'translate(-50%, -50%) rotate(45deg)' }}
+                      />
+                    ))}
                   </div>
                 ))}
                 {/* Render Transition Buttons */}
