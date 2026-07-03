@@ -1,12 +1,12 @@
-import { MousePointer2, Scissors, Trash2, Copy, Eye, EyeOff, Lock, Unlock, Mic, ZoomIn, ZoomOut, Volume2 } from 'lucide-react';
+import { MousePointer2, Scissors, Trash2, Copy, Eye, EyeOff, Lock, Unlock, Mic, ZoomIn, ZoomOut, Volume2, Music, Type, Image, Film } from 'lucide-react';
 import { useState } from 'react';
 import { useProject } from '../context';
 
 const TRACKS = [
-  { id: 't1', name: 'Text', type: 'text', icon: 'T', color: '#A86624', isMuted: false, isLocked: false },
-  { id: 'v2', name: 'Main Track', type: 'video', icon: 'V', color: '#2B547E', isMuted: false, isLocked: false },
-  { id: 'v1', name: 'Overlay', type: 'video', icon: 'V', color: '#6D3A8A', isMuted: true, isLocked: false },
-  { id: 'a1', name: 'Audio', type: 'audio', icon: 'A', color: '#1E6C54', isMuted: false, isLocked: true },
+  { id: 't1', name: 'Text', type: 'text', icon: Type, color: '#A86624', isMuted: false, isLocked: false },
+  { id: 'v1', name: 'Sticker/PiP', type: 'video', icon: Image, color: '#6D3A8A', isMuted: false, isLocked: false },
+  { id: 'v2', name: 'Main Track', type: 'video', icon: Film, color: '#2B547E', isMuted: false, isLocked: false },
+  { id: 'a1', name: 'Music', type: 'audio', icon: Music, color: '#1E6C54', isMuted: false, isLocked: false },
 ];
 
 export default function Timeline() {
@@ -21,7 +21,7 @@ export default function Timeline() {
   };
 
   return (
-    <div className="h-[35vh] min-h-[250px] bg-[#121212] border-t border-[#222] flex flex-col flex-shrink-0 relative z-10">
+    <div className="h-[40vh] min-h-[200px] bg-[#121212] border-t border-[#222] flex flex-col flex-shrink-0 relative z-10">
       {/* Timeline Toolbar */}
       <div className="h-10 bg-[#181818] border-b border-[#222] flex items-center justify-between px-2 md:px-4 overflow-x-auto no-scrollbar">
         <div className="flex items-center space-x-1 md:space-x-2 md:border-r border-[#333] md:pr-4 flex-shrink-0">
@@ -48,88 +48,130 @@ export default function Timeline() {
         </div>
       </div>
 
-      {/* Tracks Area */}
-      <div className="flex-1 flex overflow-hidden relative">
-        
-        {/* Track Headers (Left sidebar) */}
-        <div className="w-[80px] md:w-[140px] flex-shrink-0 bg-[#181818] border-r border-[#222] flex flex-col z-20">
-          <div className="h-6 border-b border-[#333]"></div> {/* Empty space for time ruler */}
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {TRACKS.map(track => (
-              <div key={track.id} className="h-16 border-b border-[#222] flex flex-col justify-center px-1 md:px-2 py-1 relative group">
-                <div className="flex items-center justify-between text-[10px] text-gray-400 mb-1">
-                  <div className="flex items-center space-x-1">
-                    <span className="w-4 h-4 rounded bg-[#222] flex items-center justify-center font-bold text-[#888]">{track.icon}</span>
-                    <span className="truncate w-10 md:w-16 hidden md:inline-block">{track.name}</span>
-                  </div>
-                  <div className="flex items-center space-x-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                    {track.isLocked ? <Lock size={12} className="text-[#2fe4b9]" /> : <Unlock size={12} />}
-                    {track.isMuted ? <EyeOff size={12} className="text-red-400" /> : <Eye size={12} />}
-                  </div>
-                </div>
-                {track.type === 'audio' && (
-                  <div className="flex items-center space-x-1 text-[10px] text-gray-500">
-                    <Volume2 size={10} />
-                    <input type="range" className="w-12 h-1" defaultValue={100} />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+      {/* Fixed Playhead (Moved outside scrolling area) */}
+      <div className="absolute top-[40px] bottom-0 w-[2px] bg-white z-30 pointer-events-none left-[40px] md:left-[50px] ml-[50%] md:ml-[30%]">
+        <div className="absolute top-0 -left-[5px] w-3 h-3 bg-white pointer-events-auto cursor-ew-resize rounded-b-sm flex items-center justify-center">
+          <div className="w-[1px] h-1.5 bg-black"></div>
         </div>
+      </div>
 
-        {/* Tracks Content (Right scrolling area) */}
-        <div className="flex-1 overflow-x-auto overflow-y-hidden bg-[#111] relative">
+      {/* Tracks Area */}
+      <div className="flex-1 overflow-auto relative">
+        <div className="flex w-[2040px] md:w-[2050px] min-h-full">
           
-          {/* Time Ruler */}
-          <div className="h-6 border-b border-[#333] sticky top-0 bg-[#111] z-10 flex items-end">
-            {/* Generating mock ruler marks */}
-            <div className="w-[2000px] h-full flex items-end" style={{ background: 'repeating-linear-gradient(to right, #333 0px, #333 1px, transparent 1px, transparent 100px)' }}>
-              {[...Array(20)].map((_, i) => (
-                <div key={i} className="w-[100px] flex-shrink-0 text-[9px] text-gray-500 pl-1 pb-0.5">
-                  00:00:{i * 5 < 10 ? '0' + i * 5 : i * 5}:00
+          {/* Track Headers (Left sidebar) */}
+          <div className="w-[40px] md:w-[50px] flex-shrink-0 bg-[#181818] border-r border-[#222] flex flex-col z-20 sticky left-0">
+            <div className="h-6 border-b border-[#333] sticky top-0 bg-[#181818] z-30"></div> {/* Empty space for time ruler */}
+            <div className="flex flex-col">
+              {TRACKS.map(track => (
+                <div key={track.id} className="h-16 border-b border-[#222] flex items-center justify-center relative flex-shrink-0">
+                  <span className="w-6 h-6 rounded bg-[#222] flex items-center justify-center font-bold text-[#888] text-xs shadow-inner">
+                    <track.icon size={14} />
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Grid lines */}
-          <div className="absolute inset-0 pointer-events-none" style={{ background: 'repeating-linear-gradient(to right, #222 0px, #222 1px, transparent 1px, transparent 100px)' }}></div>
-
-          {/* Playhead */}
-          <div className="absolute top-0 bottom-0 w-[1px] bg-[#2fe4b9] z-30 pointer-events-none" style={{ left: '320px' }}>
-            <div className="absolute top-0 -left-[4.5px] w-2.5 h-3 bg-[#2fe4b9] pointer-events-auto cursor-ew-resize rounded-b-sm">
-              <div className="absolute top-1 left-[4px] w-[1px] h-1.5 bg-[#111]"></div>
+          {/* Tracks Content (Right scrolling area) */}
+          <div 
+            className="flex-1 relative flex flex-col"
+            onClick={() => setClips(clips.map(c => ({ ...c, selected: false })))}
+          >
+            
+            {/* Time Ruler */}
+            <div className="h-6 border-b border-[#333] sticky top-0 bg-[#111] z-10 flex items-end">
+              {/* Generating mock ruler marks */}
+              <div className="w-full h-full flex items-end" style={{ background: 'repeating-linear-gradient(to right, #333 0px, #333 1px, transparent 1px, transparent 100px)' }}>
+                {[...Array(20)].map((_, i) => (
+                  <div key={i} className="w-[100px] flex-shrink-0 text-[9px] text-gray-500 pl-1 pb-0.5">
+                    00:00:{i * 5 < 10 ? '0' + i * 5 : i * 5}:00
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Tracks Wrapper */}
-          <div className="w-[2000px] relative">
-            {TRACKS.map((track, i) => (
-              <div key={track.id} className="h-16 border-b border-[#222]/50 relative" style={{ top: `${i * 64}px`, position: 'absolute', width: '100%' }}>
-                {/* Render clips for this track */}
-                {clips.filter(c => c.trackId === track.id).map(clip => (
+            {/* Grid lines */}
+            <div className="absolute inset-0 pointer-events-none mt-6" style={{ background: 'repeating-linear-gradient(to right, #222 0px, #222 1px, transparent 1px, transparent 100px)' }}></div>
+
+            {/* Tracks Wrapper */}
+            <div className="w-full flex flex-col relative">
+            {TRACKS.map((track, i) => {
+              const trackClips = clips.filter(c => c.trackId === track.id);
+              
+              return (
+                <div key={track.id} className="h-16 border-b border-[#222]/50 relative w-full">
+                  {/* Empty state placeholders for specific tracks */}
+                  {trackClips.length === 0 && track.id === 't1' && (
+                    <div className="absolute left-2 top-2 bottom-2 w-48 bg-[#2A2A2A] rounded-sm flex items-center px-3 text-[11px] text-[#888] cursor-pointer border border-[#333] hover:bg-[#333]">
+                      Tap to add subtitle
+                    </div>
+                  )}
+                  {trackClips.length === 0 && track.id === 'v1' && (
+                    <div className="absolute left-2 top-2 bottom-2 w-48 bg-[#2A2A2A] rounded-sm flex items-center px-3 text-[11px] text-[#888] cursor-pointer border border-[#333] hover:bg-[#333]">
+                      Tap to add sticker / PiP
+                    </div>
+                  )}
+                  {trackClips.length === 0 && track.id === 'a1' && (
+                    <div className="absolute left-2 top-2 bottom-2 w-48 bg-[#2A2A2A] rounded-sm flex items-center px-3 text-[11px] text-[#888] cursor-pointer border border-[#333] hover:bg-[#333]">
+                      Tap to add music
+                    </div>
+                  )}
+
+                  {trackClips.length === 0 && track.id === 'v2' && (
+                    <div className="absolute left-2 top-2 bottom-2 w-48 bg-[#2A2A2A] rounded-sm flex items-center px-3 text-[11px] text-[#888] cursor-pointer border border-[#333] hover:bg-[#333]">
+                      Tap to add video
+                    </div>
+                  )}
+
+                  {/* Render clips for this track */}
+                  {trackClips.map(clip => (
                   <div 
                     key={clip.id}
-                    onClick={() => handleClipClick(clip.id)}
-                    className={`absolute top-1.5 bottom-1.5 rounded flex items-center px-2 text-[10px] text-white truncate cursor-pointer select-none transition-all ${clip.bg} ${
-                      clip.selected ? 'ring-1 ring-white/80 ring-offset-1 ring-offset-[#111] z-10 brightness-110' : 'opacity-90 hover:opacity-100 hover:brightness-110'
+                    onClick={(e) => { e.stopPropagation(); handleClipClick(clip.id); }}
+                    className={`absolute top-1 bottom-1 flex items-center text-[11px] font-medium text-white cursor-pointer select-none overflow-hidden ${
+                      clip.selected ? 'border-y-[3px] border-[#FFC800] z-20' : 'opacity-85 hover:opacity-100 rounded-sm z-10'
                     }`}
-                    style={{ left: `${clip.start}px`, width: `${clip.duration}px` }}
+                    style={{ left: `${clip.start}px`, width: `${clip.duration}px`, backgroundColor: clip.bg || '#333' }}
                   >
-                    {clip.name}
+                    <span className="truncate drop-shadow-md px-2 z-10">{clip.name}</span>
                     
-                    {/* Simulated trim handles */}
+                    {clip.type === 'video' && clip.url && (
+                      <div className="absolute inset-0 pointer-events-none flex opacity-80" style={{ backgroundImage: `url(${clip.url})`, backgroundSize: 'cover', backgroundRepeat: 'repeat-x' }}>
+                         {/* Optional text or time overlay can go here */}
+                         <div className="absolute bottom-0 left-0 bg-black/60 px-1 text-[8px]">{clip.duration / 10}s</div>
+                      </div>
+                    )}
+                    
+                    {clip.type === 'audio' && (
+                      <div className="absolute inset-0 opacity-40 pointer-events-none flex items-center px-1 overflow-hidden">
+                         <div className="w-full h-full" style={{ background: `url("data:image/svg+xml,%3Csvg width='10' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='1' y='5' width='2' height='10' fill='white' /%3E%3Crect x='4' y='2' width='2' height='16' fill='white' /%3E%3Crect x='7' y='7' width='2' height='6' fill='white' /%3E%3C/svg%3E") repeat-x center` }}></div>
+                      </div>
+                    )}
+
+                    {/* VN Editor style trim handles */}
                     {clip.selected && (
                       <>
-                        <div className="absolute left-0 top-0 bottom-0 w-2 bg-white/20 cursor-ew-resize rounded-l"></div>
-                        <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/20 cursor-ew-resize rounded-r"></div>
+                        <div className="absolute -left-3 top-[-3px] bottom-[-3px] w-3 bg-white cursor-ew-resize rounded-l-sm border-y-[3px] border-l-[3px] border-[#FFC800] flex items-center justify-center z-20">
+                          <span className="text-black text-[14px] leading-none -ml-[1px]">+</span>
+                        </div>
+                        <div className="absolute -right-3 top-[-3px] bottom-[-3px] w-3 bg-white cursor-ew-resize rounded-r-sm border-y-[3px] border-r-[3px] border-[#FFC800] flex items-center justify-center z-20">
+                          <span className="text-black text-[14px] leading-none -mr-[1px]">+</span>
+                        </div>
                       </>
                     )}
                   </div>
                 ))}
+                {/* Render Transition Buttons */}
+                {track.id === 'v2' && trackClips.map((clip, idx) => (
+                  <div key={`trans-${clip.id}`} className="absolute top-[50%] -mt-[10px] w-[20px] h-[20px] bg-white rounded-sm shadow-md flex items-center justify-center cursor-pointer z-30 border border-[#ddd] hover:bg-[#eee]" style={{ left: `${clip.start + clip.duration - 10}px` }}>
+                    <span className="text-black text-lg leading-none">+</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            );
+          })}
+            </div>
           </div>
         </div>
       </div>

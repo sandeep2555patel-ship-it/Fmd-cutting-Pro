@@ -10,7 +10,7 @@ interface MediaBinProps {
 }
 
 export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps) {
-  const { state: { clips }, setClips } = useProject();
+  const { state: { clips, mediaLibrary }, setClips, setMediaLibrary } = useProject();
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerateCaptions = () => {
@@ -18,7 +18,8 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
     // Simulate generation time
     setTimeout(() => {
       setIsGenerating(false);
-      setClips([...clips, {
+      const newClips = clips.map(c => ({ ...c, selected: false }));
+      setClips([...newClips, {
         id: `c${Date.now()}`,
         trackId: 't1',
         start: 0,
@@ -27,11 +28,13 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
         bg: '#A86624',
         selected: true
       }]);
+      onClose?.();
     }, 2000);
   };
 
   const handleAddSticker = (emoji: string) => {
-    setClips([...clips, {
+    const newClips = clips.map(c => ({ ...c, selected: false }));
+    setClips([...newClips, {
       id: `c${Date.now()}`,
       trackId: 't1', // text track
       start: 50,
@@ -40,10 +43,12 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
       bg: '#A86624',
       selected: true
     }]);
+    onClose?.();
   };
 
   const handleAddFilter = (name: string) => {
-    setClips([...clips, {
+    const newClips = clips.map(c => ({ ...c, selected: false }));
+    setClips([...newClips, {
       id: `c${Date.now()}`,
       trackId: 'v1', 
       start: 0,
@@ -52,10 +57,12 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
       bg: '#6D3A8A',
       selected: true
     }]);
+    onClose?.();
   };
 
   const handleAddTransition = (name: string) => {
-    setClips([...clips, {
+    const newClips = clips.map(c => ({ ...c, selected: false }));
+    setClips([...newClips, {
       id: `c${Date.now()}`,
       trackId: 'v2', 
       start: 130,
@@ -64,10 +71,12 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
       bg: '#2B547E',
       selected: true
     }]);
+    onClose?.();
   };
 
   const handleAddText = (name: string) => {
-    setClips([...clips, {
+    const newClips = clips.map(c => ({ ...c, selected: false }));
+    setClips([...newClips, {
       id: `c${Date.now()}`,
       trackId: 't1', 
       start: 0,
@@ -76,6 +85,7 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
       bg: '#A86624',
       selected: true
     }]);
+    onClose?.();
   };
 
   return (
@@ -107,17 +117,16 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
                   const url = URL.createObjectURL(file);
                   const type = file.type.startsWith('video/') ? 'video' : file.type.startsWith('audio/') ? 'audio' : 'image';
                   
-                  setClips([...clips, {
-                    id: `c${Date.now()}`,
-                    trackId: 'v2', 
-                    start: clips.length * 50,
-                    duration: 120,
+                  const newMedia = {
+                    id: `m${Date.now()}`,
                     name: file.name,
-                    bg: '#2B547E',
-                    selected: true,
-                    type: type,
-                    url: url
-                  }]);
+                    url: url,
+                    type: type as 'video'|'audio'|'image'
+                  };
+                  
+                  setMediaLibrary([newMedia, ...mediaLibrary]);
+                  
+                  e.target.value = ''; // reset file input
                 } catch (err) {
                   console.error('Local import failed', err);
                   alert('Local import failed');
@@ -128,38 +137,40 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
             </label>
 
             <div className="flex items-center justify-between text-xs text-gray-400 mb-3 px-1">
-              <span>Project Media (5)</span>
+              <span>Project Media ({mediaLibrary.length})</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              {[
-                { name: 'For Bigger Blazes', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' },
-                { name: 'Big Buck Bunny', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' },
-                { name: 'Elephants Dream', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' },
-                { name: 'Tears of Steel', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4' },
-                { name: 'Sintel', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4' }
-              ].map((video, i) => (
-                <div key={i} onClick={() => {
-                  setClips([...clips, {
+              {mediaLibrary.map((media, i) => (
+                <div key={media.id} onClick={() => {
+                  const newClips = clips.map(c => ({ ...c, selected: false }));
+                  setClips([...newClips, {
                     id: `c${Date.now()}`,
-                    trackId: 'v2', 
+                    trackId: media.type === 'audio' ? 'a1' : 'v2', 
                     start: clips.length * 50,
                     duration: 120,
-                    name: video.name,
-                    bg: '#2B547E',
+                    name: media.name,
+                    bg: media.type === 'audio' ? '#1E6C54' : '#2B547E',
                     selected: true,
-                    type: 'video',
-                    url: video.url
+                    type: media.type,
+                    url: media.url
                   }]);
+                  onClose?.();
                 }} className="group relative aspect-video bg-[#222] rounded overflow-hidden border border-[#333] hover:border-[#444] cursor-pointer">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-[#1a365d] to-[#0f172a] opacity-80" />
-                  <div className="absolute top-1 left-1 bg-black/60 px-1 py-0.5 rounded text-[8px] text-white truncate max-w-[90%]">
-                    {video.name}
+                  {media.type === 'video' ? (
+                     <video src={media.url} className="absolute inset-0 w-full h-full object-cover opacity-80" />
+                  ) : media.type === 'image' ? (
+                     <img src={media.url} className="absolute inset-0 w-full h-full object-cover opacity-80" />
+                  ) : (
+                     <div className="absolute inset-0 bg-gradient-to-tr from-[#1E6C54] to-[#0f172a] opacity-80 flex items-center justify-center text-[#2fe4b9]/50"><Folder size={24} /></div>
+                  )}
+                  <div className="absolute top-1 left-1 bg-black/60 px-1 py-0.5 rounded text-[8px] text-white truncate max-w-[90%] z-10">
+                    {media.name}
                   </div>
-                  <div className="absolute bottom-1 right-1 bg-black/70 px-1 rounded text-[10px]">
-                    00:0{i + 3}:12
+                  <div className="absolute bottom-1 right-1 bg-black/70 px-1 rounded text-[10px] z-10">
+                    {media.type}
                   </div>
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity">
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity z-20">
                     <Plus size={20} className="text-white drop-shadow" />
                   </div>
                 </div>
@@ -363,7 +374,8 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
                 <div 
                   key={i} 
                   onClick={() => {
-                    setClips([...clips, {
+                    const newClips = clips.map(c => ({ ...c, selected: false }));
+                    setClips([...newClips, {
                       id: `c${Date.now()}`,
                       trackId: 'a1', 
                       start: clips.length * 20,
@@ -374,6 +386,7 @@ export default function MediaBin({ activeTab, isMobile, onClose }: MediaBinProps
                       type: 'audio',
                       url: audio.url
                     }]);
+                    onClose?.();
                   }}
                   className="flex items-center space-x-3 p-2 bg-[#111] border border-[#333] hover:border-[#2fe4b9] rounded group cursor-pointer transition-colors"
                 >
