@@ -208,7 +208,7 @@ export default function Toolbar() {
         <ToolbarButton icon={Undo2} label="Undo" onClick={undo} disabled={!canUndo} />
         <ToolbarButton icon={Redo2} label="Redo" onClick={redo} disabled={!canRedo} />
         
-        {selectedClip && (
+        {selectedClip && selectedClip.type !== 'text' && (
           <>
             <label className="flex flex-col items-center justify-center w-14 h-14 hover:bg-[#2a2a2a] rounded-lg transition-colors group flex-shrink-0 cursor-pointer">
               <RefreshCcw size={20} className="text-gray-300 group-hover:text-white mb-1" />

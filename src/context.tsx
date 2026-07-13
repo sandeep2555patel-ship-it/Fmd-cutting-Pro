@@ -99,6 +99,7 @@ export type Clip = {
   lyrics?: string;
   audioEffect?: string;
   voiceEnhance?: boolean;
+  enhanced?: boolean;
   enhanceIntensity?: number;
   equalizerEnabled?: boolean;
   preAmp?: number;

@@ -195,7 +195,7 @@ const VideoLayer: React.FC<{ clip: Clip, isPlaying: boolean, currentTime: number
 };
 
 const Preview = () => {
-  const { state: { clips, currentTime, isPlaying }, setCurrentTime, setIsPlaying } = useProject();
+  const { state: { clips, currentTime, isPlaying }, setCurrentTime, setIsPlaying, setClips } = useProject();
   const activeVideoClips = clips.filter(c => (c.type === 'video' || c.type === 'image') && currentTime >= c.start && currentTime <= c.start + c.duration);
 
   const activeAudioClip = clips.find(c => c.type === 'audio' && currentTime >= c.start && currentTime <= c.start + c.duration);
@@ -372,15 +372,22 @@ const Preview = () => {
     }
   }, [isPlaying, setIsPlaying, activeAudioClip?.url]);
 
-  useEffect(() => {
+useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isPlaying) {
       interval = setInterval(() => {
-        setCurrentTime(prev => prev + 2); // 2 units (px) = 100ms at 20px/s
+        setCurrentTime(prev => {
+          const newTime = prev + 2; // 2 units (px) = 100ms at 20px/s
+          const maxEnd = Math.max(...clips.map(c => c.start + c.duration), 0);
+          if (newTime >= maxEnd && maxEnd > 0) {
+            return 0; // loop back
+          }
+          return newTime;
+        });
       }, 100); 
     }
     return () => clearInterval(interval);
-  }, [isPlaying, setCurrentTime]);
+  }, [isPlaying, setCurrentTime, clips]);
 
   // Sync audio time with global time (20px = 1s)
   useEffect(() => {
@@ -401,11 +408,11 @@ const Preview = () => {
   };
 
   return (
-    <div className="flex-1 min-h-0 bg-[#111] flex flex-col border-r border-[#222]">
+    <div className="flex-1 min-h-0 bg-zinc-950 flex flex-col border-r border-zinc-800">
       {/* Viewport */}
-      <div className="flex-1 min-h-0 flex items-center justify-center p-2 bg-black relative">
+      <div className="flex-1 min-h-0 flex items-center justify-center p-2 bg-zinc-950 relative">
         {/* Mock Video Container */}
-        <div className="relative aspect-[9/16] h-full max-h-full bg-[#1e1e1e] border border-[#222] shadow-2xl flex items-center justify-center overflow-hidden">
+        <div className="relative aspect-[9/16] h-full max-h-full bg-zinc-900 border border-zinc-800 shadow-2xl flex items-center justify-center overflow-hidden">
           {activeVideoClips.length > 0 ? (
             activeVideoClips.map(clip => (
               <VideoLayer key={clip.id} clip={clip} isPlaying={isPlaying} currentTime={currentTime} />
@@ -425,7 +432,7 @@ const Preview = () => {
               if (clipWithLyrics?.lyrics) {
                 return (
                   <div className="absolute bottom-16 w-[90%] left-1/2 -translate-x-1/2 text-center z-30 pointer-events-none">
-                    <p className="text-white text-xl md:text-2xl font-bold px-4 py-2 bg-black/60 rounded-lg drop-shadow-md border border-white/10" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
+                    <p className="text-white text-xl md:text-cyan-400xl font-bold px-4 py-2 bg-zinc-950/60 rounded-lg drop-shadow-md border border-white/10" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
                       {clipWithLyrics.lyrics}
                     </p>
                   </div>
@@ -434,41 +441,112 @@ const Preview = () => {
               return null;
             })()}
           
+                    
+          {/* Text Clips */}
+          {clips.filter(c => c.type === 'text' && currentTime >= c.start && currentTime <= c.start + c.duration).map(textClip => (
+            <div 
+              key={textClip.id}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                
+                // Select clip
+                const newClips = clips.map(c => ({...c, selected: c.id === textClip.id}));
+                setClips(newClips);
+                
+                const target = e.currentTarget;
+                const startX = e.clientX;
+                const startY = e.clientY;
+                
+                const xStr = (textClip as any).x || '50%';
+                const yStr = (textClip as any).y || '75%';
+                const startXPercent = parseFloat(xStr);
+                const startYPercent = parseFloat(yStr);
+                
+                const rect = target.parentElement!.getBoundingClientRect();
+                
+                const onPointerMove = (moveEvent: PointerEvent) => {
+                  const dx = moveEvent.clientX - startX;
+                  const dy = moveEvent.clientY - startY;
+                  
+                  const dxPercent = (dx / rect.width) * 100;
+                  const dyPercent = (dy / rect.height) * 100;
+                  
+                  setClips(prevClips => prevClips.map(c => {
+                    if (c.id === textClip.id) {
+                      return {
+                        ...c,
+                        x: `${startXPercent + dxPercent}%`,
+                        y: `${startYPercent + dyPercent}%`
+                      };
+                    }
+                    return c;
+                  }));
+                };
+                
+                const onPointerUp = () => {
+                  window.removeEventListener('pointermove', onPointerMove);
+                  window.removeEventListener('pointerup', onPointerUp);
+                };
+                
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
+              }}
+              className={`absolute ${textClip.selected ? 'ring-2 ring-cyan-400' : ''} cursor-move p-2 rounded z-30`}
+              style={{
+                left: (textClip as any).x || '50%',
+                top: (textClip as any).y || '75%',
+                transform: 'translate(-50%, -50%)',
+                color: textClip.color || '#ffffff',
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+              }}
+            >
+              <h2 
+                className="text-2xl font-bold text-center whitespace-pre-wrap outline-none"
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => {
+                  const newContent = e.currentTarget.innerText;
+                  setClips(prevClips => prevClips.map(c => c.id === textClip.id ? { ...c, content: newContent } : c));
+                }}
+              >{textClip.content}</h2>
+            </div>
+          ))}
+          
           <div className="absolute inset-0 pointer-events-none ring-1 ring-[#2fe4b9]/30 z-20"></div>
           
           {/* Mock Transform Box overlay */}
-          <div className="absolute inset-20 border border-[#2fe4b9] pointer-events-none opacity-0 hover:opacity-100 transition-opacity z-20">
-            <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-[#2fe4b9] rounded-full"></div>
-            <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-[#2fe4b9] rounded-full"></div>
-            <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-[#2fe4b9] rounded-full"></div>
-            <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-[#2fe4b9] rounded-full"></div>
+          <div className="absolute inset-20 border border-cyan-400 pointer-events-none opacity-0 hover:opacity-100 transition-opacity z-20">
+            <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border border-cyan-400 rounded-full"></div>
+            <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border border-cyan-400 rounded-full"></div>
+            <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border border-cyan-400 rounded-full"></div>
+            <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border border-cyan-400 rounded-full"></div>
           </div>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="h-12 bg-[#181818] border-t border-[#222] flex items-center justify-between px-2 md:px-4">
+      <div className="h-12 bg-zinc-900 border-t border-zinc-800 flex items-center justify-between px-2 md:px-4">
         <div className="text-[10px] md:text-xs font-mono text-[#2fe4b9] hidden md:block">
           {formatTime(currentTime)} <span className="text-gray-500">/ 00:01:24:15</span>
         </div>
         
         <div className="flex items-center space-x-3 md:space-x-4 mx-auto md:mx-0">
-          <button onClick={() => setCurrentTime(0)} className="p-1.5 text-gray-400 hover:text-white transition-colors">
+          <button onClick={() => setCurrentTime(0)} className="p-1.5 text-zinc-400 hover:text-cyan-400 transition-colors transition-colors">
             <SkipBack size={18} fill="currentColor" />
           </button>
           <button 
-            className="text-white hover:text-[#2fe4b9] transition-colors p-1"
+            className="text-zinc-100 hover:text-cyan-400 transition-colors transition-colors p-1"
             onClick={() => setIsPlaying(!isPlaying)}
           >
             {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" />}
           </button>
-          <button className="p-1.5 text-gray-400 hover:text-white transition-colors">
+          <button className="p-1.5 text-zinc-400 hover:text-cyan-400 transition-colors transition-colors">
             <SkipForward size={18} fill="currentColor" />
           </button>
         </div>
         
         <div className="flex items-center space-x-2 md:space-x-3 text-gray-400">
-          <div className="hidden md:flex items-center space-x-1 text-xs bg-[#111] px-2 py-1 rounded border border-[#333]">
+          <div className="hidden md:flex items-center space-x-1 text-xs bg-zinc-950 px-2 py-1 rounded border border-zinc-700">
             <Minus size={14} className="hover:text-white cursor-pointer" />
             <span className="w-8 text-center">Fit</span>
             <Plus size={14} className="hover:text-white cursor-pointer" />

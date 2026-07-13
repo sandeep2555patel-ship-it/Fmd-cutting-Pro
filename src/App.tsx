@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TabType } from './types';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -12,17 +12,22 @@ import { useProject } from './context';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType | null>('media');
+  useEffect(() => {
+    const handleOpen = (e: any) => setActiveTab(e.detail);
+    window.addEventListener('open-media-bin', handleOpen);
+    return () => window.removeEventListener('open-media-bin', handleOpen);
+  }, []);
   const { showProperties, setShowProperties, state: { clips } } = useProject();
   
   const selectedClip = clips.find(c => c.selected);
 
   return (
-    <div className="flex flex-col h-[100dvh] w-screen overflow-hidden bg-[#080808] text-[#E0E0E0] font-sans selection:bg-[#2fe4b9]/30">
+    <div className="flex flex-col h-[100dvh] w-screen overflow-hidden bg-zinc-950 text-zinc-100 font-sans selection:bg-cyan-500/30">
       <Header />
       
       <div className="flex flex-col md:flex-row flex-1 overflow-hidden relative">
         {/* Mobile: Bottom Tabs, Desktop: Left Sidebar */}
-        <div className="order-last md:order-first z-50 bg-[#121212]">
+        <div className="order-last md:order-first z-50 bg-zinc-900 shadow-2xl z-50">
           <div className="md:hidden">
             {selectedClip ? <Toolbar /> : <Sidebar activeTab={activeTab || 'media'} setActiveTab={setActiveTab} />}
           </div>
@@ -37,7 +42,7 @@ export default function App() {
         </div>
         
         {/* Mobile Media Bin Overlay */}
-        <div className={`md:hidden absolute inset-0 z-40 bg-[#181818] flex-col transition-transform duration-300 ease-in-out ${activeTab ? 'translate-y-0 flex' : 'translate-y-full'}`}>
+        <div className={`md:hidden absolute inset-0 z-40 bg-zinc-900/95 backdrop-blur-2xl border-t border-white/5 flex-col transition-transform duration-300 ease-in-out ${activeTab ? 'translate-y-0 flex' : 'translate-y-full'}`}>
            {activeTab && <MediaBin activeTab={activeTab} isMobile={true} onClose={() => setActiveTab(null)} />}
         </div>
 
@@ -53,7 +58,7 @@ export default function App() {
            {/* Floating Mobile Properties Button */}
            <button 
              onClick={() => setShowProperties(true)}
-             className="md:hidden absolute top-4 right-4 z-10 bg-black/60 p-2 rounded-full backdrop-blur border border-white/10 text-white shadow-lg"
+             className="md:hidden absolute top-4 right-4 z-10 bg-zinc-950/80 p-2 rounded-full backdrop-blur border border-white/10 text-white shadow-lg"
            >
              <SlidersHorizontal size={20} />
            </button>
@@ -65,10 +70,10 @@ export default function App() {
         </div>
 
         {/* Mobile Properties Overlay */}
-        <div className={`xl:hidden absolute bottom-0 left-0 right-0 top-[50%] z-50 bg-[#181818] flex-col transition-transform duration-300 ease-in-out ${showProperties ? 'translate-y-0 flex' : 'translate-y-full'}`}>
-           <div className="flex justify-between items-center p-4 border-b border-[#222]">
+        <div className={`xl:hidden absolute bottom-0 left-0 right-0 top-[50%] z-50 bg-zinc-900/95 backdrop-blur-2xl border-t border-white/5 flex-col transition-transform duration-300 ease-in-out ${showProperties ? 'translate-y-0 flex' : 'translate-y-full'}`}>
+           <div className="flex justify-between items-center p-4 border-b border-zinc-800">
               <span className="font-semibold">Properties</span>
-              <button onClick={() => setShowProperties(false)} className="p-1 bg-[#222] rounded-full text-gray-400 hover:text-white"><X size={20} /></button>
+              <button onClick={() => setShowProperties(false)} className="p-1 bg-zinc-800/80 hover:bg-zinc-700 rounded-full text-gray-400 hover:text-white"><X size={20} /></button>
            </div>
            <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
              <Properties isMobile={true} />
